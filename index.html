@@ -121,6 +121,12 @@
     </div>
 
     <script>
+        window.onload = function () {
+            fetch('https://backend-website-zqow.onrender.com/api/analytics/maths', {
+                method: 'POST'
+            });
+        };
+
         document.getElementById('date').innerText = "Wird geladen...";
         document.getElementById('olddate').innerText = "Wird geladen...";
         document.getElementById('homework').innerText = "Wird geladen..."
@@ -144,8 +150,8 @@
                 console.error('Fehler beim Laden:', error);
                 return null;
             }
-        } 
-        
+        }
+
         let currentImages = {};
         const API_BASE_URL = 'https://backend-website-zqow.onrender.com';
 
