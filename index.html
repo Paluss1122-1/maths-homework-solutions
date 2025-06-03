@@ -114,7 +114,7 @@
         </div>
         <h1>Aktuell (<span id="date"></span>):</h1>
         <h1 id="homework"></h1>
-        <img id="workbookImage" src="pictures/1.jpg" alt="">
+        <div id="pictures"></div>
         <br>
         <h1>Letze Hausi (<span id="olddate"></span>):</h1>
         <h1 id="old-homework"></h1>
@@ -144,7 +144,39 @@
                 console.error('Fehler beim Laden:', error);
                 return null;
             }
+        } 
+        
+        let currentImages = {};
+        const API_BASE_URL = 'https://backend-website-zqow.onrender.com';
+
+        async function fetchAndDisplayImages() {
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/images/${'Mathe'}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    currentImages = result.images;
+                    displayImages(result.images);
+                } else {
+                    currentImages = [];
+                    displayImages([]);
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Bilder:', error);
+            }
         }
+
+        function displayImages(images) {
+            if (images.length === 0) {
+                return;
+            }
+
+            document.getElementById('pictures').innerHTML = images.map((image, index) => `
+                    <img id="workbookImage" src="${API_BASE_URL}/api/images/file/${image.filename}" alt="${image.originalName}" style="box-shadow: none;">`).join('');
+        }
+
+        fetchAndDisplayImages()
 
         // Verwendung
         async function update() {
