@@ -115,9 +115,6 @@
         <h1>Aktuell (<span id="date"></span>):</h1>
         <h1 id="homework"></h1>
         <div id="pictures"></div>
-        <br>
-        <h1>Letze Hausi (<span id="olddate"></span>):</h1>
-        <h1 id="old-homework"></h1>
     </div>
 
     <script>
@@ -128,9 +125,7 @@
         };
 
         document.getElementById('date').innerText = "Wird geladen...";
-        document.getElementById('olddate').innerText = "Wird geladen...";
         document.getElementById('homework').innerText = "Wird geladen..."
-        document.getElementById('old-homework').innerText = "Wird geladen..."
 
         function toall() {
             window.location.href = "https://solutions-dashboard-7.netlify.app";
@@ -189,9 +184,7 @@
             getHausaufgaben().then(data => {
                 if (data) {
                     document.getElementById('homework').innerText = data.MatheHausaufgabe;
-                    document.getElementById('old-homework').innerText = data.AlteMatheHausaufgabe
                     document.getElementById('date').innerText = data.MatheHausaufgabeDatum;
-                    document.getElementById('olddate').innerText = data.AlteMatheHausaufgabeDatum;
                     document.title = `${data.MatheHausaufgabeDatum} - Hausaufgaben Lösungen Mathe`;
                 }
             });
