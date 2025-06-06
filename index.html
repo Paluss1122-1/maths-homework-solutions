@@ -114,9 +114,52 @@
         </div>
         <h1>Aktuell (<span id="date"></span>):</h1>
         <h1 id="homework"></h1>
-        <img id="workbookImage" src="pictures/1.png" alt="">
-        <div id="pictures"></div>
+        <div id="pictures">
+            <p>Die Bilder werden geladen...</p>
+        </div>
     </div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+        const supabaseUrl = 'https://xmyszcahhvgcrwjyqdsq.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhteXN6Y2FoaHZnY3J3anlxZHNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkxNDM0NTksImV4cCI6MjA2NDcxOTQ1OX0.2UIRYj3R_jpS-YhhYud6d5aWfNDrPpK-jy8Vi_HP-ao' // 🔒 Ersetzen!
+        const supabase = createClient(supabaseUrl, supabaseKey)
+
+        const bucket = 'bilder'
+        const folder = 'Mathe' // 🔁 Ordner im Bucket
+
+        async function loadImages() {
+            const { data, error } = await supabase
+                .storage
+                .from(bucket)
+                .list(folder, {
+                    limit: 100,
+                    offset: 0,
+                    sortBy: { column: 'name', order: 'asc' }
+                })
+
+            const gallery = document.getElementById('pictures')
+            gallery.innerHTML = '' // clear before reloading
+
+            if (error) {
+                console.error('Fehler beim Laden:', error)
+                gallery.innerHTML = '<p>Fehler beim Laden der Bilder.</p>'
+                return
+            }
+
+            data.forEach(file => {
+                const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${folder}/${file.name}`
+                const img = document.createElement('img')
+                img.src = publicUrl
+                img.alt = file.name
+                img.id = 'workbookImage'
+                gallery.appendChild(img)
+            })
+        }
+
+        loadImages()
+    </script>
 
     <script>
         window.onload = function () {
@@ -150,35 +193,6 @@
 
         let currentImages = {};
         const API_BASE_URL = 'https://backend-website-zqow.onrender.com';
-
-        async function fetchAndDisplayImages() {
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/images/${'Mathe'}`);
-                const result = await response.json();
-
-                if (result.success) {
-                    currentImages = result.images;
-                    displayImages(result.images);
-                } else {
-                    currentImages = [];
-                    displayImages([]);
-                }
-            } catch (error) {
-                console.error('Fehler beim Laden der Bilder:', error);
-            }
-        }
-
-        function displayImages(images) {
-            if (images.length === 0) {
-                return;
-            }
-
-            document.getElementById('pictures').innerHTML = images.map((image, index) => `
-                    <img id="workbookImage" src="${API_BASE_URL}/api/images/file/${image.filename}" alt="${image.originalName}" style="box-shadow: none;">`).join('');
-        }
-
-        fetchAndDisplayImages()
 
         // Verwendung
         async function update() {
