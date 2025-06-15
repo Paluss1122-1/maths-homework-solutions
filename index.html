@@ -99,6 +99,145 @@
             }
         }
     </style>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBW0WzA9IJoEZ2GuTBMaUoWpOQildKfohU",
+            authDomain: "solutions-dashboard-7-1f6e4.firebaseapp.com",
+            projectId: "solutions-dashboard-7-1f6e4",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const docRef = doc(db, "Hausaufgaben", "hausaufgaben");
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const dateElem = document.getElementById("date");
+            const homeworkElem = document.getElementById("homework");
+
+            dateElem.innerText = "Wird geladen...";
+            homeworkElem.innerText = "Wird geladen...";
+
+            async function update() {
+                try {
+                    const snap = await getDoc(docRef);
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        homeworkElem.innerText = data.Mathe || "Keine Mathe-Hausaufgabe";
+                        dateElem.innerText = data.MatheDatum; // du kannst auch ein Datum aus Firestore speichern, falls gewünscht
+                        document.title = `${data.MatheDatum} - Hausaufgaben Lösungen Mathe`;
+                    } else {
+                        homeworkElem.innerText = "Daten nicht gefunden! Fehler wurde automatisiert gemeldet!";
+                        dateElem.innerText = "-";
+
+                        await addDoc(collection(db, "Fehlerberichte"), {
+                            typ: "Dokument nicht gefunden",
+                            ort: "Hausaufgaben/hausaufgaben",
+                            zeit: serverTimestamp(),
+                            userAgent: navigator.userAgent
+                        });
+                    }
+                } catch (err) {
+                    homeworkElem.innerText = "Fehler beim Laden";
+                    console.error(err);
+
+                    await addDoc(collection(db, "Fehlerberichte"), {
+                        typ: "Technischer Fehler",
+                        fehler: err.message,
+                        stacktrace: err.stack || null,
+                        zeit: serverTimestamp(),
+                        userAgent: navigator.userAgent
+                    });
+                }
+            }
+
+            window.onload = function () {
+                addDoc(collection(db, 'analytics'), {
+                    browser: getBrowserName(),
+                    device: navigator.platform,
+                    zeit: new Date().toISOString(),
+                    link: window.location.href
+                }).then((docRef) => {
+                    console.log('Dokument gespeichert mit ID: ', docRef.id);
+                }).catch((error) => {
+                    console.error('Fehler beim Speichern: ', error);
+                });
+            };
+
+            // Hilfsfunktionen für Browser-Erkennung
+            function getBrowserName() {
+                const userAgent = navigator.userAgent;
+
+                if (userAgent.includes('Firefox')) return 'Firefox';
+                if (userAgent.includes('Chrome')) return 'Chrome';
+                if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
+                if (userAgent.includes('Edge')) return 'Edge';
+                if (userAgent.includes('Opera')) return 'Opera';
+                if (userAgent.includes('Trident')) return 'Internet Explorer';
+
+                return 'Unknown';
+            }
+
+            function getBrowserVersion() {
+                const userAgent = navigator.userAgent;
+                let match;
+
+                // Chrome
+                if ((match = userAgent.match(/Chrome\/(\d+)/))) {
+                    return match[1];
+                }
+                // Firefox
+                if ((match = userAgent.match(/Firefox\/(\d+)/))) {
+                    return match[1];
+                }
+                // Safari
+                if ((match = userAgent.match(/Version\/(\d+).*Safari/))) {
+                    return match[1];
+                }
+                // Edge
+                if ((match = userAgent.match(/Edge\/(\d+)/))) {
+                    return match[1];
+                }
+
+                return 'Unknown';
+            }
+
+            update();
+            setInterval(update, 5000);
+        });
+    </script>
+    <!--KI Chatbot-->
+    <script>
+        (function () { 
+            if (!window.chatbase || window.chatbase("getState") !== "initialized") { 
+                window.chatbase = (...args) => { 
+                    if (!window.chatbase.q) { window.chatbase.q = [] } 
+                    window.chatbase.q.push(args) 
+                }; 
+                window.chatbase = new Proxy(window.chatbase, { 
+                    get(target, prop) { 
+                        if (prop === "q") { return target.q } 
+                        return (...args) => target(prop, ...args) 
+                    } 
+                }) 
+            } 
+            const onLoad = function () { 
+                const script = document.createElement("script"); 
+                script.src = "https://www.chatbase.co/embed.min.js"; 
+                script.id = "eWuN3g6RdpWvEffhIdOy5"; 
+                script.domain = "www.chatbase.co"; 
+                document.body.appendChild(script) 
+            }; 
+            if (document.readyState === "complete") { 
+                onLoad() 
+            } else { 
+                window.addEventListener("load", onLoad) 
+            } 
+        })();
+    </script>
 </head>
 
 <body>
@@ -119,6 +258,7 @@
         </div>
     </div>
 
+    <!--Bilder Laden-->
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js'
 
@@ -127,7 +267,7 @@
         const supabase = createClient(supabaseUrl, supabaseKey)
 
         const bucket = 'bilder'
-        const folder = 'Mathe' // 🔁 Ordner im Bucket
+        const folder = 'Mathe'
 
         async function loadImages() {
             const { data, error } = await supabase
@@ -159,53 +299,6 @@
         }
 
         loadImages()
-    </script>
-
-    <script>
-        window.onload = function () {
-            fetch('https://backend-website-zqow.onrender.com/api/analytics/maths', {
-                method: 'POST'
-            });
-        };
-
-        document.getElementById('date').innerText = "Wird geladen...";
-        document.getElementById('homework').innerText = "Wird geladen..."
-
-        function toall() {
-            window.location.href = "https://solutions-dashboard-7.netlify.app";
-        }
-
-        async function getHausaufgaben() {
-            try {
-                const response = await fetch('https://backend-website-zqow.onrender.com/api/hausaufgaben');
-                const data = await response.json();
-
-                if (data.success) {
-                    return data.data;
-                } else {
-                    throw new Error(data.error);
-                }
-            } catch (error) {
-                console.error('Fehler beim Laden:', error);
-                return null;
-            }
-        }
-
-        let currentImages = {};
-        const API_BASE_URL = 'https://backend-website-zqow.onrender.com';
-
-        // Verwendung
-        async function update() {
-            getHausaufgaben().then(data => {
-                if (data) {
-                    document.getElementById('homework').innerText = data.MatheHausaufgabe;
-                    document.getElementById('date').innerText = data.MatheHausaufgabeDatum;
-                    document.title = `${data.MatheHausaufgabeDatum} - Hausaufgaben Lösungen Mathe`;
-                }
-            });
-        }
-        update();
-        setInterval(update, 5000);
     </script>
 </body>
 
