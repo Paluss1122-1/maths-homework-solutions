@@ -297,6 +297,7 @@
             }
 
             data.forEach(file => {
+                if (file.name === '.emptyFolderPlaceholder' || file.name === 'emptyfolderplaceholder') return; // ausblenden
                 const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${folder}/${file.name}`
                 const img = document.createElement('img')
                 img.src = publicUrl
