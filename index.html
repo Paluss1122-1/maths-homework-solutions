@@ -55,8 +55,12 @@
             border-radius: 50px 0px 0px 50px;
         }
 
+        .switcher button:last-child {
+            border-radius: 0px 50px 50px 0px;
+        }
+
         .switcher button:hover {
-            background-color: rgba(255, 255, 255, 0.3);
+            background-color: rgba(255, 255, 255, 0.2);
         }
 
         #workbookImage,
@@ -300,6 +304,10 @@
                 img.id = 'workbookImage'
                 gallery.appendChild(img)
             })
+        }
+
+        function toall() {
+            window.location.href = "https://solutions-dashboard-7.netlify.app";
         }
 
         loadImages()
