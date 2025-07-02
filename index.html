@@ -117,7 +117,47 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        window.db = db; // <-- Fix: Attach db to window
         const docRef = doc(db, "Hausaufgaben", "hausaufgaben");
+
+        // Hilfsfunktionen für Browser-Erkennung
+        function getBrowserName() {
+            const userAgent = navigator.userAgent;
+
+            if (userAgent.includes('Firefox')) return 'Firefox';
+            if (userAgent.includes('Chrome')) return 'Chrome';
+            if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
+            if (userAgent.includes('Edge')) return 'Edge';
+            if (userAgent.includes('Opera')) return 'Opera';
+            if (userAgent.includes('Trident')) return 'Internet Explorer';
+
+            return 'Unknown';
+        }
+        window.getBrowserName = getBrowserName; // <-- Fix: Attach to window
+
+        function getBrowserVersion() {
+            const userAgent = navigator.userAgent;
+            let match;
+
+            // Chrome
+            if ((match = userAgent.match(/Chrome\/(\d+)/))) {
+                return match[1];
+            }
+            // Firefox
+            if ((match = userAgent.match(/Firefox\/(\d+)/))) {
+                return match[1];
+            }
+            // Safari
+            if ((match = userAgent.match(/Version\/(\d+).*Safari/))) {
+                return match[1];
+            }
+            // Edge
+            if ((match = userAgent.match(/Edge\/(\d+)/))) {
+                return match[1];
+            }
+
+            return 'Unknown';
+        }
 
         document.addEventListener("DOMContentLoaded", () => {
             const dateElem = document.getElementById("date");
@@ -131,9 +171,9 @@
                     const snap = await getDoc(docRef);
                     if (snap.exists()) {
                         const data = snap.data();
-                        homeworkElem.innerText = data.Mathe || "Keine Mathe-Hausaufgabe";
-                        dateElem.innerText = data.MatheDatum; // du kannst auch ein Datum aus Firestore speichern, falls gewünscht
-                        document.title = `${data.MatheDatum} - Hausaufgaben Lösungen Mathe`;
+                        homeworkElem.innerText = data.Englisch || "Keine Hausaufgabe";
+                        dateElem.innerText = data.EnglischDatum; // du kannst auch ein Datum aus Firestore speichern, falls gewünscht
+                        document.title = `${data.EnglischDatum} - Hausaufgaben Lösungen`;
                     } else {
                         homeworkElem.innerText = "Daten nicht gefunden! Fehler wurde automatisiert gemeldet!";
                         dateElem.innerText = "-";
@@ -159,59 +199,70 @@
                 }
             }
 
-            window.onload = function () {
-                if (!window.location.href.startsWith("http://127.0.0.1") && !window.location.href.startsWith("https://127.0.0.1")) {
-                    // Direkt mit addDoc die Daten speichern
-                    addDoc(collection(db, 'analytics'), {
-                        browser: getBrowserName(),
-                        device: navigator.platform,
-                        zeit: new Date().toISOString(),
-                        link: window.location.href
-                    }).then((docRef) => {
-                        console.log('Dokument gespeichert mit ID: ', docRef.id);
-                    }).catch((error) => {
-                        console.error('Fehler beim Speichern: ', error);
-                    });
+            const nameOverlay = document.getElementById('nameOverlay');
+            const userNameInput = document.getElementById('userNameInput');
+            const submitNameBtn = document.getElementById('submitNameBtn');
+            const noThanksBtn = document.getElementById('noThanksBtn');
+
+            const NAME_KEY = 'analyticsUserName';
+            const NAME_DECLINED_KEY = 'analyticsUserNameDeclined';
+
+            function showNameOverlay() {
+                nameOverlay.style.display = 'flex';
+            }
+            function hideNameOverlay() {
+                nameOverlay.style.display = 'none';
+            }
+
+            // Prüfen ob Name oder Ablehnung im localStorage
+            const storedName = localStorage.getItem(NAME_KEY);
+            const declined = localStorage.getItem(NAME_DECLINED_KEY);
+
+            if (!storedName && !declined) {
+                // Frame anzeigen, wenn noch keine Entscheidung getroffen wurde
+                showNameOverlay();
+            }
+
+            submitNameBtn.onclick = function () {
+                const name = userNameInput.value.trim();
+                if (name) {
+                    localStorage.setItem(NAME_KEY, name);
                 }
+                hideNameOverlay();
+                sendAnalytics(name || null);
             };
 
-            // Hilfsfunktionen für Browser-Erkennung
-            function getBrowserName() {
-                const userAgent = navigator.userAgent;
+            noThanksBtn.onclick = function () {
+                localStorage.setItem(NAME_DECLINED_KEY, '1');
+                hideNameOverlay();
+                sendAnalytics(null);
+            };
 
-                if (userAgent.includes('Firefox')) return 'Firefox';
-                if (userAgent.includes('Chrome')) return 'Chrome';
-                if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
-                if (userAgent.includes('Edge')) return 'Edge';
-                if (userAgent.includes('Opera')) return 'Opera';
-                if (userAgent.includes('Trident')) return 'Internet Explorer';
-
-                return 'Unknown';
+            // Analytics nur senden, wenn Name/Entscheidung getroffen wurde
+            function sendAnalytics(name) {
+                import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ collection, addDoc, serverTimestamp }) => {
+                    // Hole db und Hilfsfunktion aus globalem Scope
+                    const db = window.db;
+                    const getBrowserName = window.getBrowserName || (() => 'Unknown');
+                    if (!window.location.href.startsWith("http://127.0.0.1") && !window.location.href.startsWith("https://127.0.0.1")) {
+                        addDoc(collection(db, 'analytics'), {
+                            browser: getBrowserName(),
+                            device: navigator.platform,
+                            zeit: new Date().toISOString(),
+                            link: window.location.href,
+                            name: name
+                        })
+                    }
+                });
             }
 
-            function getBrowserVersion() {
-                const userAgent = navigator.userAgent;
-                let match;
-
-                // Chrome
-                if ((match = userAgent.match(/Chrome\/(\d+)/))) {
-                    return match[1];
+            window.addEventListener('DOMContentLoaded', () => {
+                const storedName = localStorage.getItem(NAME_KEY);
+                const declined = localStorage.getItem(NAME_DECLINED_KEY);
+                if (storedName || declined) {
+                    sendAnalytics(storedName || null);
                 }
-                // Firefox
-                if ((match = userAgent.match(/Firefox\/(\d+)/))) {
-                    return match[1];
-                }
-                // Safari
-                if ((match = userAgent.match(/Version\/(\d+).*Safari/))) {
-                    return match[1];
-                }
-                // Edge
-                if ((match = userAgent.match(/Edge\/(\d+)/))) {
-                    return match[1];
-                }
-
-                return 'Unknown';
-            }
+            });
 
             update();
             setInterval(update, 5000);
