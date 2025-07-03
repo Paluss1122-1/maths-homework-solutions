@@ -182,9 +182,9 @@
                     const snap = await getDoc(docRef);
                     if (snap.exists()) {
                         const data = snap.data();
-                        homeworkElem.innerText = data.Englisch || "Keine Hausaufgabe";
-                        dateElem.innerText = data.EnglischDatum; // du kannst auch ein Datum aus Firestore speichern, falls gewünscht
-                        document.title = `${data.EnglischDatum} - Hausaufgaben Lösungen`;
+                        homeworkElem.innerText = data.Mathe || "Keine Hausaufgabe";
+                        dateElem.innerText = data.MatheDatum; // du kannst auch ein Datum aus Firestore speichern, falls gewünscht
+                        document.title = `${data.MatheDatum} - Hausaufgaben Lösungen`;
                     } else {
                         homeworkElem.innerText = "Daten nicht gefunden! Fehler wurde automatisiert gemeldet!";
                         dateElem.innerText = "-";
