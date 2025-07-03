@@ -255,7 +255,11 @@
                     // Hole db und Hilfsfunktion aus globalem Scope
                     const db = window.db;
                     const getBrowserName = window.getBrowserName || (() => 'Unknown');
-                    if (!window.location.href.startsWith("http://127.0.0.1") && !window.location.href.startsWith("https://127.0.0.1")) {
+                    if (
+                        !window.location.href.startsWith("http://127.0.0.1") &&
+                        !window.location.href.startsWith("https://127.0.0.1") &&
+                        !(typeof name === "string" && name.toLowerCase() === "paul")
+                    ) {
                         addDoc(collection(db, 'analytics'), {
                             browser: getBrowserName(),
                             device: navigator.platform,
