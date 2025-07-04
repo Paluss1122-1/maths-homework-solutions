@@ -185,6 +185,15 @@
                         homeworkElem.innerText = data.Mathe || "Keine Hausaufgabe";
                         dateElem.innerText = data.MatheDatum; // du kannst auch ein Datum aus Firestore speichern, falls gewünscht
                         document.title = `${data.MatheDatum} - Hausaufgaben Lösungen`;
+                        if (data.Mathe == "NICHTS!" && !started) {
+                            const gallery = document.getElementById('pictures')
+                            const img = document.createElement('img')
+                            img.src = "https://xmyszcahhvgcrwjyqdsq.supabase.co/storage/v1/object/public/bilder/Generell/41S-5Y8WjdL._SL500_.jpg"
+                            img.alt = " "
+                            img.id = 'workbookImage'
+                            gallery.appendChild(img)
+                            started = true;
+                        }
                     } else {
                         homeworkElem.innerText = "Daten nicht gefunden! Fehler wurde automatisiert gemeldet!";
                         dateElem.innerText = "-";
