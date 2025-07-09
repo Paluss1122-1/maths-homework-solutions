@@ -177,6 +177,84 @@
             dateElem.innerText = "Wird geladen...";
             homeworkElem.innerText = "Wird geladen...";
 
+            const nameOverlay = document.getElementById('nameOverlay');
+            const userNameInput = document.getElementById('userNameInput');
+            const submitNameBtn = document.getElementById('submitNameBtn');
+            const noThanksBtn = document.getElementById('noThanksBtn');
+
+            const NAME_KEY = 'analyticsUserName';
+            const NAME_DECLINED_KEY = 'analyticsUserNameDeclined';
+
+            function showNameOverlay() {
+                nameOverlay.style.display = 'flex';
+            }
+            function hideNameOverlay() {
+                nameOverlay.style.display = 'none';
+            }
+
+            // Prüfe, ob ein Name im URL-Hash steht
+            const hashName = decodeURIComponent(window.location.hash.replace(/^#/, '').trim());
+            if (hashName) {
+                localStorage.setItem(NAME_KEY, hashName);
+                nameOverlay.style.display = 'none';
+                sendAnalytics(hashName);
+            } else {
+                // Prüfen ob Name oder Ablehnung im localStorage
+                const storedName = localStorage.getItem(NAME_KEY);
+                const declined = localStorage.getItem(NAME_DECLINED_KEY);
+
+                if (!storedName && !declined) {
+                    // Frame anzeigen, wenn noch keine Entscheidung getroffen wurde
+                    showNameOverlay();
+                }
+            }
+
+            submitNameBtn.onclick = function () {
+                const name = userNameInput.value.trim();
+                if (name) {
+                    localStorage.setItem(NAME_KEY, name);
+                }
+                hideNameOverlay();
+                sendAnalytics(name || null);
+            };
+
+            noThanksBtn.onclick = function () {
+                localStorage.setItem(NAME_DECLINED_KEY, '1');
+                hideNameOverlay();
+                sendAnalytics(null);
+            };
+
+            // Analytics nur senden, wenn Name/Entscheidung getroffen wurde
+            function sendAnalytics(name) {
+                import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ collection, addDoc, serverTimestamp }) => {
+                    // Hole db und Hilfsfunktion aus globalem Scope
+                    const db = window.db;
+                    const getBrowserName = window.getBrowserName || (() => 'Unknown');
+                    const device = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.userAgent;
+                    if (
+                        !window.location.href.startsWith("http://127.0.0.1") &&
+                        !window.location.href.startsWith("https://127.0.0.1") &&
+                        !(typeof name === "string" && name.toLowerCase() === "paul")
+                    ) {
+                        addDoc(collection(db, 'analytics'), {
+                            browser: getBrowserName(),
+                            device: device,
+                            zeit: new Date().toISOString(),
+                            link: window.location.href.split('#')[0],
+                            name: name
+                        })
+                    }
+                });
+            }
+
+            window.addEventListener('DOMContentLoaded', () => {
+                const storedName = localStorage.getItem(NAME_KEY);
+                const declined = localStorage.getItem(NAME_DECLINED_KEY);
+                if (storedName || declined) {
+                    sendAnalytics(storedName || null);
+                }
+            });
+
             async function update() {
                 try {
                     const snap = await getDoc(docRef);
@@ -221,75 +299,6 @@
                     });
                 }
             }
-
-            const nameOverlay = document.getElementById('nameOverlay');
-            const userNameInput = document.getElementById('userNameInput');
-            const submitNameBtn = document.getElementById('submitNameBtn');
-            const noThanksBtn = document.getElementById('noThanksBtn');
-
-            const NAME_KEY = 'analyticsUserName';
-            const NAME_DECLINED_KEY = 'analyticsUserNameDeclined';
-
-            function showNameOverlay() {
-                nameOverlay.style.display = 'flex';
-            }
-            function hideNameOverlay() {
-                nameOverlay.style.display = 'none';
-            }
-
-            // Prüfen ob Name oder Ablehnung im localStorage
-            const storedName = localStorage.getItem(NAME_KEY);
-            const declined = localStorage.getItem(NAME_DECLINED_KEY);
-
-            if (!storedName && !declined) {
-                // Frame anzeigen, wenn noch keine Entscheidung getroffen wurde
-                showNameOverlay();
-            }
-
-            submitNameBtn.onclick = function () {
-                const name = userNameInput.value.trim();
-                if (name) {
-                    localStorage.setItem(NAME_KEY, name);
-                }
-                hideNameOverlay();
-                sendAnalytics(name || null);
-            };
-
-            noThanksBtn.onclick = function () {
-                localStorage.setItem(NAME_DECLINED_KEY, '1');
-                hideNameOverlay();
-                sendAnalytics(null);
-            };
-
-            // Analytics nur senden, wenn Name/Entscheidung getroffen wurde
-            function sendAnalytics(name) {
-                import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ collection, addDoc, serverTimestamp }) => {
-                    // Hole db und Hilfsfunktion aus globalem Scope
-                    const db = window.db;
-                    const getBrowserName = window.getBrowserName || (() => 'Unknown');
-                    if (
-                        !window.location.href.startsWith("http://127.0.0.1") &&
-                        !window.location.href.startsWith("https://127.0.0.1") &&
-                        !(typeof name === "string" && name.toLowerCase() === "paul")
-                    ) {
-                        addDoc(collection(db, 'analytics'), {
-                            browser: getBrowserName(),
-                            device: navigator.platform,
-                            zeit: new Date().toISOString(),
-                            link: window.location.href,
-                            name: name
-                        })
-                    }
-                });
-            }
-
-            window.addEventListener('DOMContentLoaded', () => {
-                const storedName = localStorage.getItem(NAME_KEY);
-                const declined = localStorage.getItem(NAME_DECLINED_KEY);
-                if (storedName || declined) {
-                    sendAnalytics(storedName || null);
-                }
-            });
 
             update();
             setInterval(update, 5000);
