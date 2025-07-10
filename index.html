@@ -115,195 +115,6 @@
             padding: 5px;
         }
     </style>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-        import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBW0WzA9IJoEZ2GuTBMaUoWpOQildKfohU",
-            authDomain: "solutions-dashboard-7-1f6e4.firebaseapp.com",
-            projectId: "solutions-dashboard-7-1f6e4",
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        window.db = db; // <-- Fix: Attach db to window
-        const docRef = doc(db, "Hausaufgaben", "hausaufgaben");
-
-        // Hilfsfunktionen für Browser-Erkennung
-        function getBrowserName() {
-            const userAgent = navigator.userAgent;
-
-            if (userAgent.includes('Firefox')) return 'Firefox';
-            if (userAgent.includes('Chrome')) return 'Chrome';
-            if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
-            if (userAgent.includes('Edge')) return 'Edge';
-            if (userAgent.includes('Opera')) return 'Opera';
-            if (userAgent.includes('Trident')) return 'Internet Explorer';
-
-            return 'Unknown';
-        }
-        window.getBrowserName = getBrowserName; // <-- Fix: Attach to window
-
-        function getBrowserVersion() {
-            const userAgent = navigator.userAgent;
-            let match;
-
-            // Chrome
-            if ((match = userAgent.match(/Chrome\/(\d+)/))) {
-                return match[1];
-            }
-            // Firefox
-            if ((match = userAgent.match(/Firefox\/(\d+)/))) {
-                return match[1];
-            }
-            // Safari
-            if ((match = userAgent.match(/Version\/(\d+).*Safari/))) {
-                return match[1];
-            }
-            // Edge
-            if ((match = userAgent.match(/Edge\/(\d+)/))) {
-                return match[1];
-            }
-
-            return 'Unknown';
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            const dateElem = document.getElementById("date");
-            const homeworkElem = document.getElementById("homework");
-
-            dateElem.innerText = "Wird geladen...";
-            homeworkElem.innerText = "Wird geladen...";
-
-            const nameOverlay = document.getElementById('nameOverlay');
-            const userNameInput = document.getElementById('userNameInput');
-            const submitNameBtn = document.getElementById('submitNameBtn');
-            const noThanksBtn = document.getElementById('noThanksBtn');
-
-            const NAME_KEY = 'analyticsUserName';
-            const NAME_DECLINED_KEY = 'analyticsUserNameDeclined';
-
-            function showNameOverlay() {
-                nameOverlay.style.display = 'flex';
-            }
-            function hideNameOverlay() {
-                nameOverlay.style.display = 'none';
-            }
-
-            // Prüfe, ob ein Name im URL-Hash steht
-            const hashName = decodeURIComponent(window.location.hash.replace(/^#/, '').trim());
-            if (hashName) {
-                localStorage.setItem(NAME_KEY, hashName);
-                nameOverlay.style.display = 'none';
-                sendAnalytics(hashName);
-            } else {
-                // Prüfen ob Name oder Ablehnung im localStorage
-                const storedName = localStorage.getItem(NAME_KEY);
-                const declined = localStorage.getItem(NAME_DECLINED_KEY);
-
-                if (!storedName && !declined) {
-                    // Frame anzeigen, wenn noch keine Entscheidung getroffen wurde
-                    showNameOverlay();
-                }
-            }
-
-            submitNameBtn.onclick = function () {
-                const name = userNameInput.value.trim();
-                if (name) {
-                    localStorage.setItem(NAME_KEY, name);
-                }
-                hideNameOverlay();
-                sendAnalytics(name || null);
-            };
-
-            noThanksBtn.onclick = function () {
-                localStorage.setItem(NAME_DECLINED_KEY, '1');
-                hideNameOverlay();
-                sendAnalytics(null);
-            };
-
-            // Analytics nur senden, wenn Name/Entscheidung getroffen wurde
-            function sendAnalytics(name) {
-                import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ collection, addDoc, serverTimestamp }) => {
-                    // Hole db und Hilfsfunktion aus globalem Scope
-                    const db = window.db;
-                    const getBrowserName = window.getBrowserName || (() => 'Unknown');
-                    const device = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.userAgent;
-                    if (
-                        !window.location.href.startsWith("http://127.0.0.1") &&
-                        !window.location.href.startsWith("https://127.0.0.1") &&
-                        !(typeof name === "string" && name.toLowerCase() === "paul")
-                    ) {
-                        addDoc(collection(db, 'analytics'), {
-                            browser: getBrowserName(),
-                            device: device,
-                            zeit: new Date().toISOString(),
-                            link: window.location.href.split('#')[0],
-                            name: name
-                        })
-                    }
-                });
-            }
-
-            window.addEventListener('DOMContentLoaded', () => {
-                const storedName = localStorage.getItem(NAME_KEY);
-                const declined = localStorage.getItem(NAME_DECLINED_KEY);
-                if (storedName || declined) {
-                    sendAnalytics(storedName || null);
-                }
-            });
-
-            async function update() {
-                try {
-                    const snap = await getDoc(docRef);
-                    if (snap.exists()) {
-                        const data = snap.data();
-                        homeworkElem.innerText = data.Mathe || "Keine Hausaufgabe";
-                        dateElem.innerText = data.MatheDatum; // du kannst auch ein Datum aus Firestore speichern, falls gewünscht
-                        document.title = `${data.MatheDatum} - Hausaufgaben Lösungen`;
-                        if (data.Mathe == "NICHTS!") {
-                            const gallery = document.getElementById('pictures');
-                            const imgSrc = "https://xmyszcahhvgcrwjyqdsq.supabase.co/storage/v1/object/public/bilder/Generell/41S-5Y8WjdL._SL500_.jpg";
-                            const alreadyExists = !!gallery.querySelector(`img#workbookImage[src="${imgSrc}"]`);
-                            if (!alreadyExists) {
-                                const img = document.createElement('img');
-                                img.src = imgSrc;
-                                img.alt = " ";
-                                img.id = 'workbookImage';
-                                gallery.appendChild(img);
-                            }
-                        }
-                    } else {
-                        homeworkElem.innerText = "Daten nicht gefunden! Fehler wurde automatisiert gemeldet!";
-                        dateElem.innerText = "-";
-
-                        await addDoc(collection(db, "Fehlerberichte"), {
-                            typ: "Dokument nicht gefunden",
-                            ort: "Hausaufgaben/hausaufgaben",
-                            zeit: serverTimestamp(),
-                            userAgent: navigator.userAgent
-                        });
-                    }
-                } catch (err) {
-                    homeworkElem.innerText = "Fehler beim Laden";
-                    console.error(err);
-
-                    await addDoc(collection(db, "Fehlerberichte"), {
-                        typ: "Technischer Fehler",
-                        fehler: err.message,
-                        stacktrace: err.stack || null,
-                        zeit: serverTimestamp(),
-                        userAgent: navigator.userAgent
-                    });
-                }
-            }
-
-            update();
-            setInterval(update, 5000);
-        });
-    </script>
     <!--KI Chatbot-->
     <script>
         (function () {
@@ -407,7 +218,171 @@
             })
         }
 
+        window.update = async function () {
+            const dateElem = document.getElementById("date");
+            const homeworkElem = document.getElementById("homework");
+
+            dateElem.innerText = "Wird geladen...";
+            homeworkElem.innerText = "Wird geladen...";
+
+            const { data, error } = await supabase
+                .from('Hausaufgaben')
+                .select('*')
+                .eq('id', 'general')
+                .single();
+
+            if (error || !data) {
+                homeworkElem.innerText = "Daten nicht gefunden! Fehler wurde automatisiert gemeldet!";
+                dateElem.innerText = "-";
+                // Fehlerbericht in Supabase speichern
+                await supabase.from('Fehlerberichte').insert([{
+                    typ: 'Dokument nicht gefunden',
+                    ort: 'Hausaufgaben/hausaufgaben',
+                    zeit: new Date().toISOString(),
+                    userAgent: navigator.userAgent
+                }]);
+                return;
+            }
+
+            homeworkElem.innerText = data.Mathe || "Keine Hausaufgabe";
+            dateElem.innerText = data.MatheDatum || "-";
+            document.title = `${data.MatheDatum || ""} - Hausaufgaben Lösungen`;
+            if (data.Mathe == "NICHTS!") {
+                const gallery = document.getElementById('pictures');
+                const imgSrc = "https://xmyszcahhvgcrwjyqdsq.supabase.co/storage/v1/object/public/bilder/Generell/41S-5Y8WjdL._SL500_.jpg";
+                const alreadyExists = !!gallery.querySelector(`img#workbookImage[src="${imgSrc}"]`);
+                if (!alreadyExists) {
+                    const img = document.createElement('img');
+                    img.src = imgSrc;
+                    img.alt = " ";
+                    img.id = 'workbookImage';
+                    gallery.appendChild(img);
+                }
+            }
+        }
+
         loadImages()
+
+        function getBrowserName() {
+            const userAgent = navigator.userAgent;
+
+            if (userAgent.includes('Firefox')) return 'Firefox';
+            if (userAgent.includes('Chrome')) return 'Chrome';
+            if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
+            if (userAgent.includes('Edge')) return 'Edge';
+            if (userAgent.includes('Opera')) return 'Opera';
+            if (userAgent.includes('Trident')) return 'Internet Explorer';
+
+            return 'Unknown';
+        }
+        window.getBrowserName = getBrowserName; // <-- Fix: Attach to window
+
+        function getBrowserVersion() {
+            const userAgent = navigator.userAgent;
+            let match;
+
+            // Chrome
+            if ((match = userAgent.match(/Chrome\/(\d+)/))) {
+                return match[1];
+            }
+            // Firefox
+            if ((match = userAgent.match(/Firefox\/(\d+)/))) {
+                return match[1];
+            }
+            // Safari
+            if ((match = userAgent.match(/Version\/(\d+).*Safari/))) {
+                return match[1];
+            }
+            // Edge
+            if ((match = userAgent.match(/Edge\/(\d+)/))) {
+                return match[1];
+            }
+
+            return 'Unknown';
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const dateElem = document.getElementById("date");
+            const homeworkElem = document.getElementById("homework");
+
+            dateElem.innerText = "Wird geladen...";
+            homeworkElem.innerText = "Wird geladen...";
+
+            const nameOverlay = document.getElementById('nameOverlay');
+            const userNameInput = document.getElementById('userNameInput');
+            const submitNameBtn = document.getElementById('submitNameBtn');
+            const noThanksBtn = document.getElementById('noThanksBtn');
+
+            const NAME_KEY = 'analyticsUserName';
+            const NAME_DECLINED_KEY = 'analyticsUserNameDeclined';
+
+            function showNameOverlay() {
+                nameOverlay.style.display = 'flex';
+            }
+            function hideNameOverlay() {
+                nameOverlay.style.display = 'none';
+            }
+
+            // Prüfe, ob ein Name im URL-Hash steht
+            const hashName = decodeURIComponent(window.location.hash.replace(/^#/, '').trim());
+            if (hashName) {
+                localStorage.setItem(NAME_KEY, hashName);
+                nameOverlay.style.display = 'none';
+                sendAnalytics(hashName);
+            } else {
+                // Prüfen ob Name oder Ablehnung im localStorage
+                const storedName = localStorage.getItem(NAME_KEY);
+                const declined = localStorage.getItem(NAME_DECLINED_KEY);
+                if (!storedName && !declined) {
+                    // Frame anzeigen, wenn noch keine Entscheidung getroffen wurde
+                    showNameOverlay();
+                }
+            }
+
+            submitNameBtn.onclick = function () {
+                const name = userNameInput.value.trim();
+                if (name) {
+                    localStorage.setItem(NAME_KEY, name);
+                }
+                hideNameOverlay();
+                sendAnalytics(name || null);
+            };
+
+            noThanksBtn.onclick = function () {
+                localStorage.setItem(NAME_DECLINED_KEY, '1');
+                hideNameOverlay();
+                sendAnalytics(null);
+            };
+
+            // Analytics nur senden, wenn Name/Entscheidung getroffen wurde
+            function sendAnalytics(name) {
+                const getBrowserName = window.getBrowserName || (() => 'Unknown');
+                if (
+                    !window.location.href.startsWith("http://127.0.0.1") &&
+                    !window.location.href.startsWith("https://127.0.0.1") &&
+                    !(typeof name === "string" && name.toLowerCase() === "paul")
+                ) {
+                    supabase.from('analytics').insert({
+                        browser: getBrowserName(),
+                        device: (navigator.userAgentData && navigator.userAgentData.platform) || navigator.userAgent,
+                        zeit: new Date().toISOString(),
+                        link: window.location.href,
+                        name: name
+                    })
+                }
+            }
+
+            window.addEventListener('DOMContentLoaded', () => {
+                const storedName = localStorage.getItem(NAME_KEY);
+                const declined = localStorage.getItem(NAME_DECLINED_KEY);
+                if (storedName || declined) {
+                    sendAnalytics(storedName || null);
+                }
+            });
+
+            update();
+            setInterval(update, 5000);
+        })
     </script>
     <script>
         function toall() {
